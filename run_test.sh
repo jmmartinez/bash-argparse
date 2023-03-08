@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -eou pipefail
+
+readonly WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
+pushd ${WORKDIR}/test > /dev/null
+bash bool.sh | grep "boolean is: false"
+bash bool.sh --boolean | grep "boolean is: true"
+bash int.sh | grep "count is: 0"
+bash int.sh --count=1 | grep "count is: 1"
+bash int.sh --count=2 | grep "count is: 2"
+bash string.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
+bash list.sh --shop apple --shop banana --shop orange | grep "shopping list: apple banana orange"
+bash varargs.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
+bash varargs.sh --my-name=jmmartinez -- a b c | grep "my name is: jmmartinez"
+bash varargs.sh --my-name=jmmartinez -- a b c | grep "remaining args: a b c"
+
+popd > /dev/null
+echo ""
+echo "Test ok!"
