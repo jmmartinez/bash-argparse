@@ -15,6 +15,9 @@ bash varargs.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
 bash varargs.sh --my-name=jmmartinez -- a b c | grep "my name is: jmmartinez"
 bash varargs.sh --my-name=jmmartinez -- a b c | grep "remaining args: a b c"
 
+rm -f hello.cpp
+bash readme.sh --get-src --compile --run | grep "Hello World!"
+
 popd > /dev/null
 echo ""
 echo "Test ok!"
