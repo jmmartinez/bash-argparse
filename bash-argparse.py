@@ -85,9 +85,13 @@ if __name__ == "__main__":
                              help='The name of the program or script')
     this_parser.add_argument('-d', '--description', default="Help",
                              help="The description of the program")
+    this_parser.add_argument('--help-on-empty', action='store_true',
+                             help="If not argument is passed, print help")
     this_parser.add_argument("bash_args", type=str, nargs='*', help="Arguments to forward to the bash script parser")
     args = this_parser.parse_args()
 
     bash_parser = build_parser_from_signature(args.program, args.signature, args.description)
+    if args.help_on_empty and not args.bash_args:
+        args.bash_args = ["--help"]
     bash_args = bash_parser.parse_args(args.bash_args)
     dump_bash_variables(bash_args)
