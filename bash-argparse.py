@@ -45,7 +45,7 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
             arg_name = arg_name_init_str
 
         flag_name = "--" + arg_name.replace("_", "-")
-        bash_var_name = arg_name.upper()
+        bash_var_name = arg_name.replace("-", "_").upper()
         if is_on_off_switch(arg_default_value):
             parser.add_argument(flag_name, dest=bash_var_name, default=arg_default_value, action='store_true')
         elif arg_ty is list:

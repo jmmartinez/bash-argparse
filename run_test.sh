@@ -14,6 +14,7 @@ bash list.sh --shop apple --shop banana --shop orange | grep "shopping list: app
 bash varargs.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
 bash varargs.sh --my-name=jmmartinez -- a b c | grep "my name is: jmmartinez"
 bash varargs.sh --my-name=jmmartinez -- a b c | grep "remaining args: a b c"
+bash dash.sh --dash-count=2 | grep "count is: 2"
 
 ( bash help_on_empty.sh 2>&1 || true ) | grep "usage"
 
