@@ -50,7 +50,3 @@ fi
 ## More Examples
 
 You can find more examples in the test folder
-
-## Problems
-
-Parsing strings with spaces doesn't work as expected.
