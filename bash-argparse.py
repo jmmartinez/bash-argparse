@@ -22,7 +22,7 @@ def is_vararg_marker(arg_desc : str) -> bool:
     return arg_desc.strip() == "..."
 
 def is_on_off_switch(arg_default_value) -> bool:
-    return type(arg_default_value) is bool and arg_default_value == bool()
+    return type(arg_default_value) is bool
 
 def build_parser_from_signature(prog : str, signature: str, desc : str) -> ArgumentParser:
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
@@ -47,7 +47,9 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
         flag_name = "--" + arg_name.replace("_", "-")
         bash_var_name = arg_name.replace("-", "_").upper()
         if is_on_off_switch(arg_default_value):
-            parser.add_argument(flag_name, dest=bash_var_name, default=arg_default_value, action='store_true')
+            no_flag_name = "--no-" + arg_name.replace("_", "-")
+            for flag, action in ((flag_name, "store_true"), (no_flag_name, "store_false")):
+                parser.add_argument(flag, dest=bash_var_name, default=arg_default_value, action=action)
         elif arg_ty is list:
             parser.add_argument(flag_name, dest=bash_var_name, default=arg_default_value, action='append')
         else:
