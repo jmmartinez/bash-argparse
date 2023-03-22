@@ -5,7 +5,7 @@ ARG_VARS=$( python3 ../bash-argparse.py \
               --program "${BASH_SOURCE[0]}" \
               --signature "bool get_src; bool compile; bool debug; bool run; bool verbose" \
               --description "The script compiles a program" \
-              -- $@ )
+              -- "$@" )
 eval ${ARG_VARS}
 
 ( ! ${VERBOSE} ) || set -x
