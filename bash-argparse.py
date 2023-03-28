@@ -24,7 +24,7 @@ def is_vararg_marker(arg_desc : str) -> bool:
 def is_on_off_switch(arg_default_value) -> bool:
     return type(arg_default_value) is bool
 
-def build_parser_from_signature(prog : str, signature: str, desc : str) -> ArgumentParser:
+def build_parser_from_signature(prog : str, signature: str, desc : str, var_prefix : str) -> ArgumentParser:
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
@@ -45,7 +45,7 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
             arg_name = arg_name_init_str
 
         flag_name = "--" + arg_name.replace("_", "-")
-        bash_var_name = arg_name.replace("-", "_").upper()
+        bash_var_name = var_prefix + arg_name.replace("-", "_").upper()
         if is_on_off_switch(arg_default_value):
             no_flag_name = "--no-" + arg_name.replace("_", "-")
             for flag, action in ((flag_name, "store_true"), (no_flag_name, "store_false")):
@@ -87,12 +87,14 @@ if __name__ == "__main__":
                              help='The name of the program or script')
     this_parser.add_argument('-d', '--description', default="Help",
                              help="The description of the program")
+    this_parser.add_argument('--prefix', default="",
+                             help="Add a prefix to the variables")
     this_parser.add_argument('--help-on-empty', action='store_true',
                              help="If not argument is passed, print help")
     this_parser.add_argument("bash_args", type=str, nargs='*', help="Arguments to forward to the bash script parser")
     args = this_parser.parse_args()
 
-    bash_parser = build_parser_from_signature(args.program, args.signature, args.description)
+    bash_parser = build_parser_from_signature(args.program, args.signature, args.description, args.prefix)
     if args.help_on_empty and not args.bash_args:
         args.bash_args = ["--help"]
     bash_args = bash_parser.parse_args(args.bash_args)
