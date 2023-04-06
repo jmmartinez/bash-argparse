@@ -1,5 +1,6 @@
 from argparse import ArgumentParser, Action, SUPPRESS, Namespace 
 from sys import stderr
+from re import compile as re_compile
 
 class StderrHelpAction(Action):
     def __init__(self,
@@ -18,42 +19,68 @@ class StderrHelpAction(Action):
         parser.print_help(file=stderr)
         parser.exit(-1)
 
-def is_vararg_marker(arg_desc : str) -> bool:
-    return arg_desc.strip() == "..."
-
 def is_on_off_switch(arg_default_value) -> bool:
     return type(arg_default_value) is bool
+
+class TypeDescription:
+    _types = dict()
+
+    @staticmethod
+    def get_type(identifier):
+        return TypeDescription._types[identifier]
+
+    def __init__(self, identifier, base, default, create):
+        self._base = base
+        self._default = default
+        self._create = create
+        TypeDescription._types[identifier] = self
+
+    def type(self):
+        return self._base
+
+    def default(self):
+        return self._default
+
+    def create(self, string):
+        if not string:
+            return self.default()
+        return self._create(string)
+
+for T in (bool, int, float, str, list):
+    TypeDescription(T.__name__, T, T(), T)
 
 def build_parser_from_signature(prog : str, signature: str, desc : str, var_prefix : str) -> ArgumentParser:
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
+    arg_desc_parser = re_compile(r"^\s*(?P<type>\w+)\s*(?P<name>\w+)\s*(=\s*(?P<default>\w+))?\s*$")
+    vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
+
     arguments = signature.split(";")
     for arg_desc in arguments:
-        if is_vararg_marker(arg_desc):
+        # if vararg add everuthing to the ARGS variable
+        if vararg_parser.fullmatch(arg_desc):
             parser.add_argument("ARGS", nargs="*")
             continue
 
-        arg_ty_str, arg_name_init_str = arg_desc.split()
-        arg_ty = eval(arg_ty_str)
-        arg_default_value = arg_ty()
+        match = arg_desc_parser.fullmatch(arg_desc)
+        assert(match)
 
-        if "=" in arg_name_init_str:
-            arg_name, arg_default_value_str = arg_name_init_str.split("=")
-            arg_default_value : arg_ty = eval(arg_default_value_str)
-        else:
-            arg_name = arg_name_init_str
+        arg_name = match["name"]
+        T = TypeDescription.get_type(match["type"])
+        arg_default_value = T.create(match["default"])
 
         flag_name = "--" + arg_name.replace("_", "-")
         bash_var_name = var_prefix + arg_name.replace("-", "_").upper()
+
         if is_on_off_switch(arg_default_value):
             no_flag_name = "--no-" + arg_name.replace("_", "-")
             for flag, action in ((flag_name, "store_true"), (no_flag_name, "store_false")):
                 parser.add_argument(flag, dest=bash_var_name, default=arg_default_value, action=action)
-        elif arg_ty is list:
+        elif T.type() is list:
             parser.add_argument(flag_name, dest=bash_var_name, default=arg_default_value, action='append')
         else:
-            parser.add_argument(flag_name, dest=bash_var_name, default=arg_default_value, type=arg_ty, required=False)
+            parser.add_argument(flag_name, dest=bash_var_name, default=arg_default_value, type=T.type(), required=False)
     return parser
 
 BASH_FORMATER = {
