@@ -10,6 +10,7 @@ bash bool.sh --no-boolean | grep "boolean is: false"
 bash int.sh | grep "count is: 0"
 bash int.sh --count=1 | grep "count is: 1"
 bash int.sh --count=2 | grep "count is: 2"
+bash int.sh --count=-1 | grep "count is: -1"
 bash prefix_int.sh --count=2 | grep "count is: 2"
 bash string.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
 bash string.sh --my-name="Juan Manuel" | grep "my name is: Juan Manuel"
@@ -18,6 +19,9 @@ bash varargs.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
 bash varargs.sh --my-name=jmmartinez -- a b c | grep "my name is: jmmartinez"
 bash varargs.sh --my-name=jmmartinez -- a b c | grep "remaining args: a b c"
 bash dash.sh --dash-count=2 | grep "count is: 2"
+bash unsigned.sh --count=2 | grep "count is: 2"
+bash unsigned.sh | grep "count is: 0"
+! bash unsigned.sh --count=-1
 
 ( bash help_on_empty.sh 2>&1 || true ) | grep "usage"
 
