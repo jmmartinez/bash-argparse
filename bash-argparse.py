@@ -1,5 +1,6 @@
-from argparse import ArgumentParser, Action, SUPPRESS, Namespace 
+from argparse import ArgumentParser, Action, SUPPRESS, Namespace
 from sys import stderr
+from os.path import exists as path_exists, abspath as path_abspath
 from re import compile as re_compile
 
 class StderrHelpAction(Action):
@@ -74,6 +75,16 @@ def check_unsigned(value):
         raise RuntimeError(f"{value} is not unsigned")
     return value
 
+def check_input_path(value):
+    if not path_exists(value):
+        raise RuntimeError(f"{value} path does not exist")
+    return path_abspath(value)
+
+def check_output_path(value):
+    if path_exists(value):
+        raise RuntimeError(f"{value} cannot override path")
+    return path_abspath(value)
+
 class EnumType:
     def __init__(self, factory, match):
         self._factory = factory
@@ -118,6 +129,8 @@ for T, register_option in ((bool, register_bool), (int, register_value), (float,
     TypeFactory.register(TypeFactory(f"{T.__name__}", T, get_basic_type(T), register_option))
 TypeFactory.register(TypeFactory("unsigned", int, get_basic_type_with_constraint(int, check_unsigned), register_value))
 TypeFactory.register(TypeFactory("enum<(?P<types>.+)>", str, EnumType, register_value))
+TypeFactory.register(TypeFactory("input_path", str, get_basic_type_with_constraint(str, check_input_path), register_value))
+TypeFactory.register(TypeFactory("output_path", str, get_basic_type_with_constraint(str, check_output_path), register_value))
 
 class Option:
     def __init__(self, name, T, maybe_default_value):
@@ -144,7 +157,7 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
-    arg_desc_parser = re_compile(r"^\s*(?P<type>(\w|,|<|>)+)\s*(?P<name>\w+)\s*(=\s*(?P<default>\w+))?\s*$")
+    arg_desc_parser = re_compile(r"^\s*(?P<type>(\w|,|<|>)+)\s*(?P<name>\w+)\s*(=\s*(?P<default>(\w|\/|\.|-|_)+))?\s*$")
     vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
 
     arguments = signature.split(";")

@@ -26,6 +26,14 @@ bash enum.sh | grep "build type is: debug"
 bash enum.sh --build-type debug | grep "build type is: debug"
 bash enum.sh --build-type release | grep "build type is: release"
 ! bash enum.sh --build-type house
+bash input_path.sh | grep "the path is:" | grep test
+bash input_path.sh --this-path=. | grep "the path is:" | grep test
+bash input_path.sh --this-path=$PWD | grep "the path is:" | grep test
+! bash input_path.sh --this-path=${PWD}_fail
+
+bash output_path.sh | grep "the path is:" | grep test
+bash output_path.sh --this-path=$PWD/output.txt | grep "the path is:" | grep test
+! bash output_path.sh --this-path=$PWD
 
 ( bash help_on_empty.sh 2>&1 || true ) | grep "usage"
 
