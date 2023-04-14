@@ -22,6 +22,10 @@ bash dash.sh --dash-count=2 | grep "count is: 2"
 bash unsigned.sh --count=2 | grep "count is: 2"
 bash unsigned.sh | grep "count is: 0"
 ! bash unsigned.sh --count=-1
+bash enum.sh | grep "build type is: debug"
+bash enum.sh --build-type debug | grep "build type is: debug"
+bash enum.sh --build-type release | grep "build type is: release"
+! bash enum.sh --build-type house
 
 ( bash help_on_empty.sh 2>&1 || true ) | grep "usage"
 

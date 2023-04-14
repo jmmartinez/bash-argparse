@@ -19,63 +19,132 @@ class StderrHelpAction(Action):
         parser.print_help(file=stderr)
         parser.exit(-1)
 
-class TypeDescription:
+class TypeFactory:
     _types = []
+    def __init__(self, pattern, storage_type, concrete_type, register):
+        self._pattern = re_compile(pattern)
+        self._storage_type = storage_type
+        self._concrete_type = concrete_type
+        self._register = register
+
+    def get_concrete_type(self, signature):
+        match = self._pattern.fullmatch(signature)
+        if not match:
+            return None
+        return self._concrete_type(self, match)
+
+    def register_option(self, argument_parser, option):
+        self._register(argument_parser, option)
 
     @staticmethod
-    def get_type(identifier):
-        return next(type_id for ident, type_id \
-                    in TypeDescription._types \
-                        if ident.fullmatch(identifier))
+    def register(TF):
+        TypeFactory._types.append(TF)
 
-    def __init__(self, identifier, base, default, ctor):
-        self._base = base
-        self._default = default
-        self._ctor = ctor
-        TypeDescription._types.append((re_compile(identifier), self))
+    @staticmethod
+    def get_type(signature):
+        for TF in TypeFactory._types:
+            T = TF.get_concrete_type(signature)
+            if T:
+                return T
+        raise RuntimeError(f"Unknown type \"{signature}\"")
 
-    def type(self):
-        return self._base
+def get_basic_type(T):
+    class BasicType:
+        def __init__(self, factory, _):
+            self._factory = factory
+        def parse(self, string_value):
+            return T(string_value)
+        def default(self):
+            return T()
+    return BasicType
 
+def get_basic_type_with_constraint(T, check_constraint):
+    basic = get_basic_type(T)
+    class ConstrainedType(basic):
+        def __init__(self, factory, match):
+            super().__init__(factory, match)
+        def parse(self, string_value):
+            return check_constraint(super().parse(string_value))
+        def default(self):
+            return check_constraint(super().default())
+    return ConstrainedType
+
+def check_unsigned(value):
+    if value < 0:
+        raise RuntimeError(f"{value} is not unsigned")
+    return value
+
+class EnumType:
+    def __init__(self, factory, match):
+        self._factory = factory
+        self._enum = tuple(map(str.strip, match["types"].split(",")))
+
+    def parse(self, string_value):
+        if string_value not in self._enum:
+            raise RuntimeError(f"{string_value} not a valid enum value (" + ", ".join(self._enum) + ")")
+        return string_value
+
+    def default(self):
+        return self._enum[0]
+
+def register_bool(parser, option):
+    flag_name = option.get_flag_name()
+    flag = f"--{flag_name}"
+    no_flag = f"--no-{flag_name}"
+    bash_name = option.get_bash_name()
+    default = option.default()
+    for flag, action in ((flag, "store_true"), (no_flag, "store_false")):
+        parser.add_argument(flag, dest=bash_name, default=default, action=action)
+    return
+
+def register_list(parser, option):
+    flag_name = option.get_flag_name()
+    flag = f"--{flag_name}"
+    bash_name = option.get_bash_name()
+    default = option.default()
+    parser.add_argument(flag, dest=bash_name, default=default, action='append')
+    return
+
+def register_value(parser, option):
+    flag_name = option.get_flag_name()
+    flag = f"--{flag_name}"
+    bash_name = option.get_bash_name()
+    default = option.default()
+    parse_type = lambda s: option._type.parse(s)
+    parser.add_argument(flag, dest=bash_name, default=default, type=parse_type, required=False)
+    return
+
+for T, register_option in ((bool, register_bool), (int, register_value), (float, register_value), (str, register_value), (list, register_list)):
+    TypeFactory.register(TypeFactory(f"{T.__name__}", T, get_basic_type(T), register_option))
+TypeFactory.register(TypeFactory("unsigned", int, get_basic_type_with_constraint(int, check_unsigned), register_value))
+TypeFactory.register(TypeFactory("enum<(?P<types>.+)>", str, EnumType, register_value))
+
+class Option:
+    def __init__(self, name, T, maybe_default_value):
+        self._name = name
+        self._type = T
+        if maybe_default_value:
+            self._default = T.parse(maybe_default_value)
+        else:
+            self._default = T.default()
+    
     def default(self):
         return self._default
 
-    def is_on_off_switch(self):
-        return self._base is bool
+    def get_bash_name(self):
+        return self._name.replace("-", "_").upper()
 
-    def get_ctor(self):
-        return self._ctor
+    def get_flag_name(self):
+        return self._name.replace("_", "-").lower()
 
-def get_get_T_ctor(T):
-    return lambda _: T
+    def register_option(self, argument_parser):
+        self._type._factory.register_option(argument_parser, self)
 
-for T in (bool, int, float, str, list):
-    TypeDescription(T.__name__, T, T(), get_get_T_ctor(T))
-
-def get_unsigned_ctor(_):
-    def __unsigned(v):
-        try:
-            vi = int(v)
-            if vi >= 0:
-                return vi
-        except:
-            pass
-        raise RuntimeError(f"{v} is not an unsigned value")
-    return __unsigned
-
-def get_enum_ctor(enum_identifier):
-    def __enum(v):
-        raise RuntimeError(f"{v} is not in enum {enum_identifier}")
-    return __enum
-
-TypeDescription(r"unsigned", int, int(), get_unsigned_ctor)
-TypeDescription(r"enum(\s+\w+\s+(,\s+\w+\s+)+)?", str, str(), get_enum_ctor)
-
-def build_parser_from_signature(prog : str, signature: str, desc : str, var_prefix : str) -> ArgumentParser:
+def build_parser_from_signature(prog : str, signature: str, desc : str) -> ArgumentParser:
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
-    arg_desc_parser = re_compile(r"^\s*(?P<type>\w+)\s*(?P<name>\w+)\s*(=\s*(?P<default>\w+))?\s*$")
+    arg_desc_parser = re_compile(r"^\s*(?P<type>(\w|,|<|>)+)\s*(?P<name>\w+)\s*(=\s*(?P<default>\w+))?\s*$")
     vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
 
     arguments = signature.split(";")
@@ -86,30 +155,16 @@ def build_parser_from_signature(prog : str, signature: str, desc : str, var_pref
             continue
 
         match = arg_desc_parser.fullmatch(arg_desc)
-        assert(match)
+        if not match:
+            raise RuntimeError(f"Could not parse \"{arg_desc}\"")
 
-        arg_name = match["name"]
+        name = match["name"]
         type_name = match["type"]
-        default_value_string = match["default"]
+        default = match["default"]
 
-        T = TypeDescription.get_type(type_name)
-        ctor = T.get_ctor()(type_name)
-
-        default_value = T.default()
-        if default_value_string:
-            default_value = ctor(default_value_string)
-
-        flag_name = "--" + arg_name.replace("_", "-")
-        bash_var_name = var_prefix + arg_name.replace("-", "_").upper()
-
-        if T.is_on_off_switch():
-            no_flag_name = "--no-" + arg_name.replace("_", "-")
-            for flag, action in ((flag_name, "store_true"), (no_flag_name, "store_false")):
-                parser.add_argument(flag, dest=bash_var_name, default=default_value, action=action)
-        elif T.type() is list:
-            parser.add_argument(flag_name, dest=bash_var_name, default=default_value, action='append')
-        else:
-            parser.add_argument(flag_name, dest=bash_var_name, default=default_value, type=ctor, required=False)
+        option_type = TypeFactory.get_type(type_name)
+        option = Option(name, option_type, default)
+        option.register_option(parser)
     return parser
 
 BASH_FORMATER = {
@@ -125,14 +180,14 @@ def format_bash_basic_value(value) -> str:
 def format_bash_list_value(the_list: list) -> str:
     return "( {} )".format(" ".join(map(format_bash_basic_value, the_list)))
 
-def dump_bash_variables(bash_vars : Namespace) -> None:
+def dump_bash_variables(prefix: str, bash_vars : Namespace) -> None:
     for var, value in bash_vars.__dict__.items():
         if type(value) is list: 
             bash_value : str = format_bash_list_value(value) 
-            print(f"declare -a {var}={bash_value};")
+            print(f"declare -a {prefix}{var}={bash_value};")
         else:
             bash_value : str = format_bash_basic_value(value) 
-            print(f"{var}={bash_value};")
+            print(f"{prefix}{var}={bash_value};")
     return
 
 if __name__ == "__main__":
@@ -151,11 +206,11 @@ if __name__ == "__main__":
         this_parser.add_argument("bash_args", type=str, nargs='*', help="Arguments to forward to the bash script parser")
         args = this_parser.parse_args()
 
-        bash_parser = build_parser_from_signature(args.program, args.signature, args.description, args.prefix)
+        bash_parser = build_parser_from_signature(args.program, args.signature, args.description)
         if args.help_on_empty and not args.bash_args:
             args.bash_args = ["--help"]
         bash_args = bash_parser.parse_args(args.bash_args)
-        dump_bash_variables(bash_args)
+        dump_bash_variables(args.prefix, bash_args)
     except RuntimeError as e:
         print(f"Error: {e}", file=stderr)
         exit(-1)
