@@ -47,6 +47,25 @@ if ${RUN}; then
 fi
 ```
 
+## Downloading `bash-argparse.py` using `wget`
+
+When used at the begining of the bash script, this snippet downloads `bash-argparse.py`
+without having to pull the git repository.
+
+```bash
+# pull bash-argparse.py into the same directory as the bash script
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+[ -f ${SCRIPT_DIR}/bash-argparse.py ] || \
+  wget "https://raw.githubusercontent.com/jmmartinez/bash-argparse/main/bash-argparse.py" -O ${SCRIPT_DIR}/bash-argparse.py
+
+# evaluate the arguments
+ARG_VARS=$( python3 $SCRIPT_DIR/bash-argparse.py \
+              --program "${BASH_SOURCE[0]}" \
+              --signature "enum<debug,release> build_type" \
+              -- "$@" )
+eval ${ARG_VARS}
+```
+
 ## More Examples
 
 You can find more examples in the test folder
