@@ -143,20 +143,24 @@ class Option:
         return self._name.replace("-", "_").upper()
 
     def get_flag_name(self):
-        prefix = ""
-        if not self._is_positional:
-            prefix = "--"
-        return prefix + self._name.replace("_", "-").lower()
+        return self._name.replace("_", "-").lower()
 
     def register_option(self, argument_parser):
         params = self._type._factory.register_option(self)
-        argument_parser.add_argument(self.get_flag_name(), default=self.default(), dest=self.get_bash_name(), **params)
+        if not self._is_positional:
+            params["dest"] = self.get_bash_name()
+            flag = "--" + self.get_flag_name()
+        else:
+            flag = self.get_bash_name()
+            if "required" in params:
+                del params["required"]
+        argument_parser.add_argument(flag, default=self.default(), **params)
 
 def build_parser_from_signature(prog : str, signature: str, desc : str) -> ArgumentParser:
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
-    arg_desc_parser = re_compile(r"^\s*(?P<type>(\w|,|<|>)+)\s*(?P<name>\w+)\s*(=\s*(?P<default>(\w|\/|\.|-|_)+))?\s*$")
+    arg_desc_parser = re_compile(r"^\s*(?P<is_positional>!?)\s*(?P<type>(\w|,|<|>)+)\s*(?P<name>\w+)\s*(=\s*(?P<default>(\w|\/|\.|-|_)+))?\s*$")
     vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
 
     arguments = signature.split(";")
@@ -173,9 +177,10 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
         name = match["name"]
         type_name = match["type"]
         default = match["default"]
+        is_positional = match["is_positional"]
 
         option_type = TypeFactory.get_type(type_name)
-        option = Option(name, option_type, default, False)
+        option = Option(name, option_type, default, is_positional)
         option.register_option(parser)
     return parser
 
