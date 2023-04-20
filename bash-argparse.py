@@ -98,6 +98,19 @@ class EnumType:
     def default(self):
         return self._enum[0]
 
+    @staticmethod
+    def register_enum(parser, option):
+        flag_name = option.get_flag_name()
+        flag = f"--{flag_name}"
+        bash_name = option.get_bash_name()
+        default = option.default()
+        parse_type = lambda s: option._type.parse(s)
+        choices = option._type._enum
+        parser.add_argument(flag, dest=bash_name, default=default, type=parse_type, choices=choices, required=False)
+        return
+
+
+
 def register_bool(parser, option):
     flag_name = option.get_flag_name()
     flag = f"--{flag_name}"
@@ -128,7 +141,7 @@ def register_value(parser, option):
 for T, register_option in ((bool, register_bool), (int, register_value), (float, register_value), (str, register_value), (list, register_list)):
     TypeFactory.register(TypeFactory(f"{T.__name__}", T, get_basic_type(T), register_option))
 TypeFactory.register(TypeFactory("unsigned", int, get_basic_type_with_constraint(int, check_unsigned), register_value))
-TypeFactory.register(TypeFactory("enum<(?P<types>.+)>", str, EnumType, register_value))
+TypeFactory.register(TypeFactory("enum<(?P<types>.+)>", str, EnumType, EnumType.register_enum))
 TypeFactory.register(TypeFactory("input_path", str, get_basic_type_with_constraint(str, check_input_path), register_value))
 TypeFactory.register(TypeFactory("output_path", str, get_basic_type_with_constraint(str, check_output_path), register_value))
 
