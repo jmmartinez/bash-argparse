@@ -1,20 +1,16 @@
-from argparse import ArgumentParser, Action, SUPPRESS, Namespace, BooleanOptionalAction
+from argparse import ArgumentParser, Action, ArgumentTypeError, SUPPRESS, Namespace, BooleanOptionalAction
 from sys import stderr
-from os.path import exists as path_exists, abspath as path_abspath
+from pathlib import Path, PosixPath
 from re import compile as re_compile
+from inspect import getclasstree
 
 class StderrHelpAction(Action):
-    def __init__(self,
-                 option_strings,
-                 dest=SUPPRESS,
-                 default=SUPPRESS,
-                 help=None):
+    def __init__(self, option_strings, dest=SUPPRESS,
+                 default=SUPPRESS, help=None):
         super(StderrHelpAction, self).__init__(
             option_strings=option_strings,
-            dest=dest,
-            default=default,
-            nargs=0,
-            help=help)
+            dest=dest, default=default,
+            nargs=0, help=help)
 
     def __call__(self, parser, namespace, values, option_string=None):
         parser.print_help(file=stderr)
@@ -59,31 +55,31 @@ def get_basic_type(T):
             return T()
     return BasicType
 
-def get_basic_type_with_constraint(T, check_constraint):
-    basic = get_basic_type(T)
-    class ConstrainedType(basic):
+def get_basic_type_with_constraint(T, check_constraint, default=None):
+    class ConstrainedType(get_basic_type(T)):
         def __init__(self, factory, match):
             super().__init__(factory, match)
         def parse(self, string_value):
             return check_constraint(super().parse(string_value))
         def default(self):
-            return check_constraint(super().default())
+            default_value = default or super().default()
+            return check_constraint(default_value)
     return ConstrainedType
 
 def check_unsigned(value):
     if value < 0:
-        raise RuntimeError(f"{value} is not unsigned")
+        raise ArgumentTypeError(f"{value} is not unsigned")
     return value
 
 def check_input_path(value):
-    if not path_exists(value):
-        raise RuntimeError(f"{value} path does not exist")
-    return path_abspath(value)
+    if not value.exists():
+        raise ArgumentTypeError(f"{value} path does not exist")
+    return value.absolute()
 
 def check_output_path(value):
-    if path_exists(value):
-        raise RuntimeError(f"{value} cannot override path")
-    return path_abspath(value)
+    if value.exists():
+        raise ArgumentTypeError(f"{value} cannot override path")
+    return value.absolute()
 
 class EnumType:
     def __init__(self, factory, match):
@@ -92,7 +88,8 @@ class EnumType:
 
     def parse(self, string_value):
         if string_value not in self._enum:
-            raise RuntimeError(f"{string_value} not a valid enum value (" + ", ".join(self._enum) + ")")
+            enum_list = ",".join(self._enum)
+            raise RuntimeError(f"\"{string_value}\" not a valid enum value {{{enum_list}}}")
         return string_value
 
     def default(self):
@@ -105,8 +102,6 @@ class EnumType:
             "type" : parse_type,
             "choices" : option._type._enum, 
         }
-
-
 
 def register_bool(option):
     return { "action" : BooleanOptionalAction }
@@ -122,8 +117,8 @@ for T, register_option in ((bool, register_bool), (int, register_value), (float,
     TypeFactory.register(TypeFactory(f"{T.__name__}", T, get_basic_type(T), register_option))
 TypeFactory.register(TypeFactory("unsigned", int, get_basic_type_with_constraint(int, check_unsigned), register_value))
 TypeFactory.register(TypeFactory("enum<(?P<types>.+)>", str, EnumType, EnumType.register_enum))
-TypeFactory.register(TypeFactory("input_path", str, get_basic_type_with_constraint(str, check_input_path), register_value))
-TypeFactory.register(TypeFactory("output_path", str, get_basic_type_with_constraint(str, check_output_path), register_value))
+TypeFactory.register(TypeFactory("input_path", Path, get_basic_type_with_constraint(Path, check_input_path), register_value))
+TypeFactory.register(TypeFactory("output_path", Path, get_basic_type_with_constraint(Path, check_output_path), register_value))
 
 class Option:
     def __init__(self, name, T, maybe_default_value, decorator):
@@ -168,9 +163,12 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
     vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
 
     arguments = signature.split(";")
-    for arg_desc in arguments:
-        # if vararg add everuthing to the ARGS variable
+    for i, arg_desc in enumerate(arguments):
+        # if vararg add everything to the ARGS variable
         if vararg_parser.fullmatch(arg_desc):
+            is_last = i == len(arguments) - 1
+            if not is_last:
+                raise RuntimeError(f"'{arg_desc}' specifier goes at the end")
             parser.add_argument("ARGS", nargs="*")
             continue
 
@@ -193,10 +191,14 @@ BASH_FORMATER = {
     float : str,
     bool : lambda b: str(b).lower(),
     str: lambda s: f"\"{s}\"",
+    PosixPath: lambda s: f"\"{s}\"",
 }
 
 def format_bash_basic_value(value) -> str:
-    return BASH_FORMATER[type(value)](value)
+    try:
+        return BASH_FORMATER[type(value)](value)
+    except LookupError:
+        raise RuntimeError(f"Cannot serialize type to variable {type(value)}")
 
 def format_bash_list_value(the_list: list) -> str:
     return "( {} )".format(" ".join(map(format_bash_basic_value, the_list)))
@@ -204,10 +206,10 @@ def format_bash_list_value(the_list: list) -> str:
 def dump_bash_variables(prefix: str, bash_vars : Namespace) -> None:
     for var, value in bash_vars.__dict__.items():
         if type(value) is list: 
-            bash_value : str = format_bash_list_value(value) 
+            bash_value : str = format_bash_list_value(value)
             print(f"declare -a {prefix}{var}={bash_value};")
         else:
-            bash_value : str = format_bash_basic_value(value) 
+            bash_value : str = format_bash_basic_value(value)
             print(f"{prefix}{var}={bash_value};")
     return
 
