@@ -51,6 +51,10 @@ bash positional.sh a --optional c b | grep "optional: c"
 ! bash positional.sh
 ! bash positional.sh a
 
+! bash bool_required.sh
+bash bool_required.sh --boolean | grep "boolean is: true"
+bash bool_required.sh --no-boolean | grep "boolean is: false"
+
 bash output_path.sh | grep "the path is:" | grep test
 bash output_path.sh --this-path=$PWD/output.txt | grep "the path is:" | grep test
 ! bash output_path.sh --this-path=$PWD

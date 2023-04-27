@@ -126,14 +126,14 @@ TypeFactory.register(TypeFactory("input_path", str, get_basic_type_with_constrai
 TypeFactory.register(TypeFactory("output_path", str, get_basic_type_with_constraint(str, check_output_path), register_value))
 
 class Option:
-    def __init__(self, name, T, maybe_default_value, is_positional):
+    def __init__(self, name, T, maybe_default_value, decorator):
         self._name = name
         self._type = T
         if maybe_default_value:
             self._default = T.parse(maybe_default_value)
         else:
             self._default = T.default()
-        self._is_positional = is_positional
+        self._decorator = decorator
     
     def default(self):
         return self._default
@@ -144,20 +144,27 @@ class Option:
     def get_flag_name(self):
         return self._name.replace("_", "-").lower()
 
+    def is_positional(self):
+        return self._decorator == "@"
+
+    def is_required(self):
+        return self._decorator == "!"
+
     def register_option(self, argument_parser):
         params = self._type._factory.register_option(self)
-        if not self._is_positional:
-            params["dest"] = self.get_bash_name()
-            flag = "--" + self.get_flag_name()
-        else:
+        if self.is_positional():
             flag = self.get_bash_name()
+        else:
+            flag = "--" + self.get_flag_name()
+            params["dest"] = self.get_bash_name()
+            params["required"] = self.is_required()
         argument_parser.add_argument(flag, default=self.default(), **params)
 
 def build_parser_from_signature(prog : str, signature: str, desc : str) -> ArgumentParser:
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
-    arg_desc_parser = re_compile(r"^\s*(?P<type>[\w,<>]+)\s*(?P<is_positional>@?)(?P<name>[\w-]+)\s*(=\s*(?P<default>\S+))?\s*$")
+    arg_desc_parser = re_compile(r"^\s*(?P<type>[\w,<>]+)\s*(?P<decorator>[@!]?)(?P<name>[\w-]+)\s*(=\s*(?P<default>\S+))?\s*$")
     vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
 
     arguments = signature.split(";")
@@ -174,10 +181,10 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
         name = match["name"]
         type_name = match["type"]
         default = match["default"]
-        is_positional = match["is_positional"]
+        decorator = match["decorator"]
 
         option_type = TypeFactory.get_type(type_name)
-        option = Option(name, option_type, default, is_positional)
+        option = Option(name, option_type, default, decorator)
         option.register_option(parser)
     return parser
 
