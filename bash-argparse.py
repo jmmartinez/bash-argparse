@@ -104,7 +104,6 @@ class EnumType:
         return {
             "type" : parse_type,
             "choices" : option._type._enum, 
-            "required" : False,
         }
 
 
@@ -117,7 +116,7 @@ def register_list(option):
 
 def register_value(option):
     parse_type = lambda s : option._type.parse(s)
-    return { "type" : parse_type, "required" : False }
+    return { "type" : parse_type }
 
 for T, register_option in ((bool, register_bool), (int, register_value), (float, register_value), (str, register_value), (list, register_list)):
     TypeFactory.register(TypeFactory(f"{T.__name__}", T, get_basic_type(T), register_option))
@@ -152,8 +151,6 @@ class Option:
             flag = "--" + self.get_flag_name()
         else:
             flag = self.get_bash_name()
-            if "required" in params:
-                del params["required"]
         argument_parser.add_argument(flag, default=self.default(), **params)
 
 def build_parser_from_signature(prog : str, signature: str, desc : str) -> ArgumentParser:
