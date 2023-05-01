@@ -55,7 +55,7 @@ def get_basic_type(T):
         def __init__(self, factory, _):
             self._factory = factory
         def parse(self, string_value):
-            return T(string_value)
+            return T(eval(string_value))
         def default(self):
             return T()
     return BasicType

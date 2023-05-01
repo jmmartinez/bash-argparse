@@ -6,9 +6,6 @@ readonly WORKDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 pushd ${WORKDIR}/test > /dev/null
 
 set -x
-bash bool.sh | grep "boolean is: false"
-bash bool.sh --boolean | grep "boolean is: true"
-bash bool.sh --no-boolean | grep "boolean is: false"
 
 bash int.sh | grep "count is: 0"
 bash int.sh --count=1 | grep "count is: 1"
