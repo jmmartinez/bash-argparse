@@ -1,8 +1,13 @@
-from argparse import ArgumentParser, Action, ArgumentTypeError, SUPPRESS, Namespace, BooleanOptionalAction
+from argparse import ArgumentParser, Action, ArgumentTypeError, SUPPRESS, Namespace
 from sys import stderr
 from pathlib import Path, PosixPath
 from re import compile as re_compile
-from inspect import getclasstree
+
+try:
+    from argparse import BooleanOptionalAction
+    boolean_action = (BooleanOptionalAction, BooleanOptionalAction)
+except ImportError:
+    boolean_action = ('store_false', 'store_true')
 
 class StderrHelpAction(Action):
     def __init__(self, option_strings, dest=SUPPRESS,
@@ -104,7 +109,7 @@ class EnumType:
         }
 
 def register_bool(option):
-    return { "action" : BooleanOptionalAction }
+    return { "action" : boolean_action[option.default()] }
 
 def register_list(option):
     return { "action" : "append" }
