@@ -7,11 +7,6 @@ pushd ${WORKDIR}/test > /dev/null
 
 set -x
 
-bash int.sh | grep "count is: 0"
-bash int.sh --count=1 | grep "count is: 1"
-bash int.sh --count=2 | grep "count is: 2"
-bash int.sh --count=-1 | grep "count is: -1"
-
 bash prefix_int.sh --count=2 | grep "count is: 2"
 
 bash string.sh --my-name=jmmartinez | grep "my name is: jmmartinez"

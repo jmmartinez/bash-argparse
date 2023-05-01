@@ -1,0 +1,12 @@
+# RUN: %{bash-argparse} --signature "int option" | %{FileCheck} %s --check-prefix=CHECK-0
+# RUN: %{bash-argparse} --signature "int option" -- "--option=1"  | %{FileCheck} %s --check-prefix=CHECK-1
+# RUN: %{bash-argparse} --signature "int option" -- "--option=-1" | %{FileCheck} %s --check-prefix=CHECK-neg
+
+# RUN: %{bash-argparse} --signature "int option=4" | %{FileCheck} %s --check-prefix=CHECK-4
+# RUN: %{bash-argparse} --signature "int option=4" -- "--option=1"  | %{FileCheck} %s --check-prefix=CHECK-1
+# RUN: %{bash-argparse} --signature "int option=4" -- "--option=-1" | %{FileCheck} %s --check-prefix=CHECK-neg
+
+# CHECK-0: OPTION=0
+# CHECK-1: OPTION=1
+# CHECK-4: OPTION=4
+# CHECK-neg: OPTION=-1
