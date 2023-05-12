@@ -5,9 +5,8 @@ from re import compile as re_compile
 
 try:
     from argparse import BooleanOptionalAction
-    boolean_action = (BooleanOptionalAction, BooleanOptionalAction)
 except ImportError:
-    boolean_action = ('store_false', 'store_true')
+    pass
 
 class StderrHelpAction(Action):
     def __init__(self, option_strings, dest=SUPPRESS,
@@ -55,7 +54,7 @@ def get_basic_type(T):
         def __init__(self, factory, _):
             self._factory = factory
         def parse(self, string_value):
-            return T(eval(string_value))
+            return T(str(string_value))
         def default(self):
             return T()
     return BasicType
@@ -86,6 +85,34 @@ def check_output_path(value):
         raise ArgumentTypeError(f"{value} cannot override path")
     return value.absolute()
 
+class BooleanType:
+    def __init__(self, factory, _):
+        self._factory = factory
+
+    def parse(self, string_value):
+        string_value = string_value.lower()
+        true_set = ('y', 'yes', 't', 'true', 'on', '1')
+        false_set = ('n', 'no', 'f', 'false', 'off', '0')
+        for the_set, the_value in ((true_set, True), (false_set, False)):
+            if string_value in the_set:
+                return the_value
+        raise RuntimeError(f"\"{string_value}\" not a valid bool value")
+
+    def default(self):
+        return False
+
+    @staticmethod
+    def register_bool(option):
+        try:
+            return { "action" : BooleanOptionalAction }
+        except NameError:
+            if not option.default():
+                return { "action" : "store_true"}
+            true_flag_name = option.get_flag_name()
+            false_flag_name = f"no-{true_flag_name}"
+            option.set_flag_name(false_flag_name)
+            return { "action" : "store_false"}
+
 class EnumType:
     def __init__(self, factory, match):
         self._factory = factory
@@ -108,9 +135,6 @@ class EnumType:
             "choices" : option._type._enum, 
         }
 
-def register_bool(option):
-    return { "action" : boolean_action[option.default()] }
-
 def register_list(option):
     return { "action" : "append" }
 
@@ -118,8 +142,9 @@ def register_value(option):
     parse_type = lambda s : option._type.parse(s)
     return { "type" : parse_type }
 
-for T, register_option in ((bool, register_bool), (int, register_value), (float, register_value), (str, register_value), (list, register_list)):
+for T, register_option in ((int, register_value), (float, register_value), (str, register_value), (list, register_list)):
     TypeFactory.register(TypeFactory(f"{T.__name__}", T, get_basic_type(T), register_option))
+TypeFactory.register(TypeFactory("bool", bool , BooleanType, BooleanType.register_bool))
 TypeFactory.register(TypeFactory("unsigned", int, get_basic_type_with_constraint(int, check_unsigned), register_value))
 TypeFactory.register(TypeFactory("enum<(?P<types>.+)>", str, EnumType, EnumType.register_enum))
 TypeFactory.register(TypeFactory("input_path", Path, get_basic_type_with_constraint(Path, check_input_path), register_value))
@@ -134,6 +159,7 @@ class Option:
         else:
             self._default = T.default()
         self._decorator = decorator
+        self._flag_name = self._name.replace("_", "-").lower()
     
     def default(self):
         return self._default
@@ -142,7 +168,10 @@ class Option:
         return self._name.replace("-", "_").upper()
 
     def get_flag_name(self):
-        return self._name.replace("_", "-").lower()
+        return self._flag_name
+
+    def set_flag_name(self, new_flag_name):
+        self._flag_name = new_flag_name
 
     def is_positional(self):
         return self._decorator == "@"
@@ -150,15 +179,21 @@ class Option:
     def is_required(self):
         return self._decorator == "!"
 
-    def register_option(self, argument_parser):
+    def register_option(self, argument_parser, short_flags):
         params = self._type._factory.register_option(self)
         if self.is_positional():
-            flag = self.get_bash_name()
+            flag = [self.get_bash_name()]
         else:
-            flag = "--" + self.get_flag_name()
+            flag = ["--" + self.get_flag_name()]
             params["dest"] = self.get_bash_name()
             params["required"] = self.is_required()
-        argument_parser.add_argument(flag, default=self.default(), **params)
+
+            short_flag = next((c for c in self._name if c.isalpha()), None)
+            if short_flag and short_flag not in short_flags:
+                flag.append(f"-{short_flag}")
+                short_flags.add(short_flag)
+
+        argument_parser.add_argument(*flag, default=self.default(), **params)
 
 def build_parser_from_signature(prog : str, signature: str, desc : str) -> ArgumentParser:
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
@@ -168,6 +203,7 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
     vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
 
     arguments = signature.split(";")
+    short_flags = set()
     for i, arg_desc in enumerate(arguments):
         # if vararg add everything to the ARGS variable
         if vararg_parser.fullmatch(arg_desc):
@@ -188,7 +224,7 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
 
         option_type = TypeFactory.get_type(type_name)
         option = Option(name, option_type, default, decorator)
-        option.register_option(parser)
+        option.register_option(parser, short_flags)
     return parser
 
 BASH_FORMATER = {
