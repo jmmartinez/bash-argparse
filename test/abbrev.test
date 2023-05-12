@@ -1,0 +1,8 @@
+# RUN: %{bash-argparse} --signature "int option" -- --option=1  | %{FileCheck} %s --check-prefix=CHECK-OPT
+# RUN: %{bash-argparse} --signature "int option" -- -o=1  | %{FileCheck} %s --check-prefix=CHECK-OPT
+# RUN: %{bash-argparse} --signature "int option; int otter" -- -o=1  | %{FileCheck} %s --check-prefix=CHECK-OPT
+# RUN: %{bash-argparse} --signature "int option; int Otter" -- -o=1 -O2  | %{FileCheck} %s --check-prefix=CHECK-OTTER
+
+# CHECK-OPT: OPTION=1
+# CHECK-OTTER: OPTION=1
+# CHECK-OTTER: OTTER=2
