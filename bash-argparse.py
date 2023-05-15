@@ -3,11 +3,6 @@ from sys import stderr
 from pathlib import Path, PosixPath
 from re import compile as re_compile
 
-try:
-    from argparse import BooleanOptionalAction
-except ImportError:
-    pass
-
 class StderrHelpAction(Action):
     def __init__(self, option_strings, dest=SUPPRESS,
                  default=SUPPRESS, help=None):
@@ -104,8 +99,9 @@ class BooleanType:
     @staticmethod
     def register_bool(option):
         try:
+            from argparse import BooleanOptionalAction
             return { "action" : BooleanOptionalAction }
-        except NameError:
+        except ImportError:
             if not option.default():
                 return { "action" : "store_true"}
             true_flag_name = option.get_flag_name()
