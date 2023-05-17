@@ -12,10 +12,6 @@ bash string.sh --my-name="Juan Manuel" | grep "my name is: Juan Manuel"
 
 bash list.sh --shop apple --shop banana --shop orange | grep "shopping list: apple banana orange"
 
-bash varargs.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
-bash varargs.sh --my-name=jmmartinez -- a b c | grep "my name is: jmmartinez"
-bash varargs.sh --my-name=jmmartinez -- a b c | grep "remaining args: a b c"
-
 bash dash.sh --dash-count=2 | grep "count is: 2"
 
 bash unsigned.sh --count=2 | grep "count is: 2"

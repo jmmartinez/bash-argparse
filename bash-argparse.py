@@ -3,6 +3,8 @@ from sys import stderr
 from pathlib import Path, PosixPath
 from re import compile as re_compile
 
+VARARGS_DEST="ARGS"
+
 class StderrHelpAction(Action):
     def __init__(self, option_strings, dest=SUPPRESS,
                  default=SUPPRESS, help=None):
@@ -177,13 +179,17 @@ class Option:
 
     def register_option(self, argument_parser, short_flags):
         params = self._type._factory.register_option(self)
+
+        dest = self.get_bash_name()
+        if dest == VARARGS_DEST:
+            raise RuntimeError(f"Argument \"{self._name}\" clashes with varargs output.")
+
         if self.is_positional():
             flag = [self.get_bash_name()]
         else:
             flag = ["--" + self.get_flag_name()]
-            params["dest"] = self.get_bash_name()
+            params["dest"] = dest
             params["required"] = self.is_required()
-
             short_flag = next((c for c in self._name if c.isalpha()), None)
             if short_flag and short_flag not in short_flags:
                 flag.append(f"-{short_flag}")
@@ -206,7 +212,7 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
             is_last = i == len(arguments) - 1
             if not is_last:
                 raise RuntimeError(f"'{arg_desc}' specifier goes at the end")
-            parser.add_argument("ARGS", nargs="*")
+            parser.add_argument(VARARGS_DEST, nargs="*")
             continue
 
         match = arg_desc_parser.fullmatch(arg_desc)

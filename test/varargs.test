@@ -1,0 +1,27 @@
+# RUN: %{bash-argparse} --signature "int option; ..." -- > %t.0_empty && \
+# RUN:   %{FileCheck} %s --check-prefix=OPT-0 < %t.0_empty && \
+# RUN:   %{FileCheck} %s --check-prefix=EMPTY < %t.0_empty
+
+# RUN: %{bash-argparse} --signature "int option; ..." -- --option=1 > %t.1_empty && \
+# RUN:   %{FileCheck} %s --check-prefix=OPT-1 < %t.1_empty && \
+# RUN:   %{FileCheck} %s --check-prefix=EMPTY < %t.1_empty
+
+# RUN: %{bash-argparse} --signature "int option; ..." -- -- a b c > %t.0_abc && \
+# RUN:   %{FileCheck} %s --check-prefix=OPT-0 < %t.0_abc && \
+# RUN:   %{FileCheck} %s --check-prefix=ABC < %t.0_abc
+
+# RUN: %{bash-argparse} --signature "int option; ..." -- --option=1 -- a b c > %t.1_abc && \
+# RUN:   %{FileCheck} %s --check-prefix=OPT-1 < %t.1_abc && \
+# RUN:   %{FileCheck} %s --check-prefix=ABC < %t.1_abc
+
+# RUN: %{bash-argparse} --signature "int option; ..." -- a b "c d" | %{FileCheck} %s --check-prefix=ABCD
+
+# RUN: ! %{bash-argparse} --signature "int args; ..." 2>%t.args && %{FileCheck} %s < %t.args --check-prefix=ARGS_FAIL
+# RUN: ! %{bash-argparse} --signature "int @args; ..." -- "4" 2>%t.args && %{FileCheck} %s < %t.args --check-prefix=ARGS_FAIL
+
+OPT-0: OPTION=0
+OPT-1: OPTION=1
+EMPTY: declare -a ARGS=( )
+ABC: declare -a ARGS=( "a" "b" "c" )
+ABCD: declare -a ARGS=( "a" "b" "c d" )
+ARGS_FAIL: Error:
