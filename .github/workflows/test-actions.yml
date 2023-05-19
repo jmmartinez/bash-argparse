@@ -4,7 +4,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "On branch ${{ github.ref }}."
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
