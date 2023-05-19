@@ -278,5 +278,5 @@ if __name__ == "__main__":
         bash_args = bash_parser.parse_args(args.bash_args)
         dump_bash_variables(args.prefix, bash_args)
     except RuntimeError as e:
-        print(f"Error: {e}", file=stderr)
+        print(f"error: {e}", file=stderr)
         exit(-1)

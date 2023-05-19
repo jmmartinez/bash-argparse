@@ -16,12 +16,12 @@
 
 # RUN: %{bash-argparse} --signature "int option; ..." -- a b "c d" | %{FileCheck} %s --check-prefix=ABCD
 
-# RUN: ! %{bash-argparse} --signature "int args; ..." 2>%t.args && %{FileCheck} %s < %t.args --check-prefix=ARGS_FAIL
-# RUN: ! %{bash-argparse} --signature "int @args; ..." -- "4" 2>%t.args && %{FileCheck} %s < %t.args --check-prefix=ARGS_FAIL
+# RUN: ! %{bash-argparse} --signature "int args; ..." 2>%t.args && %{FileCheck} %s < %t.args --check-prefix=ERROR
+# RUN: ! %{bash-argparse} --signature "int @args; ..." -- "4" 2>%t.args && %{FileCheck} %s < %t.args --check-prefix=ERROR
 
 OPT-0: OPTION=0
 OPT-1: OPTION=1
 EMPTY: declare -a ARGS=( )
 ABC: declare -a ARGS=( "a" "b" "c" )
 ABCD: declare -a ARGS=( "a" "b" "c d" )
-ARGS_FAIL: Error:
+ERROR: error:
