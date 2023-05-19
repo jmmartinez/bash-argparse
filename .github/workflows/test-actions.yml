@@ -1,18 +1,26 @@
 name: Test 
 on: [push, pull_request]
 jobs:
-  lint-flake8:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-      - uses: py-actions/flake8@v2
+        with:
+          python-version: '3.10'
+      - run: pip install ruff
+      - run: ruff --format=github --target-version=py37 .
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
       - run: pip install -r ${{ github.workspace }}/requirements.txt
       - name: Running legacy tests
         run: bash ${{ github.workspace }}/run_test.sh
