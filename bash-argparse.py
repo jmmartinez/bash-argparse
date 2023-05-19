@@ -201,7 +201,7 @@ def build_parser_from_signature(prog : str, signature: str, desc : str) -> Argum
     parser = ArgumentParser(prog=prog, description=desc, add_help=False)
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
-    arg_desc_parser = re_compile(r"^\s*(?P<type>[\w,<>]+)\s*(?P<decorator>[@!]?)(?P<name>[\w-]+)\s*(=\s*(?P<default>\S+))?\s*$")
+    arg_desc_parser = re_compile(r"^\s*(?P<type>[\w,<>-]+)\s*(?P<decorator>[@!]?)(?P<name>[\w-]+)\s*(=\s*(?P<default>\S+))?\s*$")
     vararg_parser = re_compile(r"^\s*\.\s*\.\s*\.\s*$")
 
     arguments = signature.split(";")

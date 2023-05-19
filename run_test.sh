@@ -14,11 +14,6 @@ bash list.sh --shop apple --shop banana --shop orange | grep "shopping list: app
 
 bash dash.sh --dash-count=2 | grep "count is: 2"
 
-bash enum.sh | grep "build type is: debug"
-bash enum.sh --build-type debug | grep "build type is: debug"
-bash enum.sh --build-type release | grep "build type is: release"
-! bash enum.sh --build-type house
-
 bash input_path.sh | grep "the path is:" | grep test
 bash input_path.sh --this-path=. | grep "the path is:" | grep test
 bash input_path.sh --this-path=$PWD | grep "the path is:" | grep test

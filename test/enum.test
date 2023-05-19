@@ -1,0 +1,17 @@
+# RUN: %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option" -- | %{FileCheck} %s --check-prefix=CHECK-R
+# RUN: %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option" -- "--option=release" | %{FileCheck} %s --check-prefix=CHECK-R
+# RUN: %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option" -- "--option=debug" | %{FileCheck} %s --check-prefix=CHECK-D
+# RUN: %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option" -- "--option=rel-with-deb-info" | %{FileCheck} %s --check-prefix=CHECK-RWD
+
+# RUN: %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option=debug" | %{FileCheck} %s --check-prefix=CHECK-D
+# RUN: %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option=rel-with-deb-info" | %{FileCheck} %s --check-prefix=CHECK-RWD
+
+# RUN: ! %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option" -- "--option=house" 2>%t.err.no_default && \
+# RUN:    %{FileCheck} %s --check-prefix=ERROR < %t.err.no_default
+# RUN: ! %{bash-argparse} --signature "enum<release,rel-with-deb-info,debug> option=house" 2>%t.err.default && \
+# RUN:    %{FileCheck} %s --check-prefix=ERROR < %t.err.default
+
+# CHECK-R: OPTION="release"
+# CHECK-RWD: OPTION="rel-with-deb-info"
+# CHECK-D: OPTION="debug"
+# ERROR: error:
