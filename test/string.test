@@ -1,0 +1,11 @@
+# RUN: %{bash-argparse} --signature "str option" | %{FileCheck} %s --check-prefix=CHECK-EMPTY
+# RUN: %{bash-argparse} --signature "str option" -- "--option=buenos"  | %{FileCheck} %s --check-prefix=CHECK-BUENOS
+# RUN: %{bash-argparse} --signature "str option" -- "--option=buenos aires" | %{FileCheck} %s --check-prefix=CHECK-BUENOS-AIRES
+# RUN: %{bash-argparse} --signature "str option" -- "--option=buenos-aires" | %{FileCheck} %s --check-prefix=CHECK-BUENOS-DASH-AIRES
+# RUN: %{bash-argparse} --signature "str option" -- "--option=4" | %{FileCheck} %s --check-prefix=CHECK-4
+
+# CHECK-EMPTY: OPTION=""
+# CHECK-BUENOS: OPTION="buenos"
+# CHECK-BUENOS-AIRES: OPTION="buenos aires"
+# CHECK-BUENOS-DASH-AIRES: OPTION="buenos-aires"
+# CHECK-4: OPTION="4"

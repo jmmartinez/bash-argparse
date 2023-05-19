@@ -7,9 +7,6 @@ pushd ${WORKDIR}/test > /dev/null
 
 set -x
 
-bash string.sh --my-name=jmmartinez | grep "my name is: jmmartinez"
-bash string.sh --my-name="Juan Manuel" | grep "my name is: Juan Manuel"
-
 bash list.sh --shop apple --shop banana --shop orange | grep "shopping list: apple banana orange"
 
 bash input_path.sh | grep "the path is:" | grep test
