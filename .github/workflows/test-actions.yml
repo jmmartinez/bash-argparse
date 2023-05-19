@@ -1,13 +1,18 @@
 name: Test 
 on: [push, pull_request, workflow_dispatch]
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+      - uses: py-actions/flake8@v2
+
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with:
-            python-version: '3.10'
       - run: pip install -r ${{ github.workspace }}/requirements.txt
       - name: Running legacy tests
         run: bash ${{ github.workspace }}/run_test.sh
