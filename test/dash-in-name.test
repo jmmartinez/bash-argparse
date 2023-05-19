@@ -1,0 +1,5 @@
+# RUN: %{bash-argparse} --signature "int opt-ion" | %{FileCheck} %s --check-prefix=CHECK-0
+# RUN: %{bash-argparse} --signature "int opt-ion" -- "--opt-ion=1" | %{FileCheck} %s --check-prefix=CHECK-1
+
+# CHECK-0: OPT_ION=0
+# CHECK-1: OPT_ION=1
