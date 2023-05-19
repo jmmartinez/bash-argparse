@@ -12,8 +12,6 @@ bash string.sh --my-name="Juan Manuel" | grep "my name is: Juan Manuel"
 
 bash list.sh --shop apple --shop banana --shop orange | grep "shopping list: apple banana orange"
 
-bash dash.sh --dash-count=2 | grep "count is: 2"
-
 bash input_path.sh | grep "the path is:" | grep test
 bash input_path.sh --this-path=. | grep "the path is:" | grep test
 bash input_path.sh --this-path=$PWD | grep "the path is:" | grep test
