@@ -277,6 +277,6 @@ if __name__ == "__main__":
             args.bash_args = ["--help"]
         bash_args = bash_parser.parse_args(args.bash_args)
         dump_bash_variables(args.prefix, bash_args)
-    except RuntimeError as e:
+    except (RuntimeError, ArgumentTypeError) as e:
         print(f"error: {e}", file=stderr)
         exit(-1)
