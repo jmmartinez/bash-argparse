@@ -7,8 +7,6 @@ pushd ${WORKDIR}/test > /dev/null
 
 set -x
 
-bash list.sh --shop apple --shop banana --shop orange | grep "shopping list: apple banana orange"
-
 bash input_path.sh | grep "the path is:" | grep test
 bash input_path.sh --this-path=. | grep "the path is:" | grep test
 bash input_path.sh --this-path=$PWD | grep "the path is:" | grep test

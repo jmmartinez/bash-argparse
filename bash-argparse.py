@@ -165,8 +165,23 @@ class EnumType:
         }
 
 
-def register_list(option):
-    return {"action": "append"}
+class ListType:
+    def __init__(self, factory, _):
+        self._factory = factory
+
+    def parse(self, string_value):
+        listlike = re_compile(r"\[(?P<elements>\S+)\]")
+        is_listlike = listlike.fullmatch(string_value)
+        if is_listlike:
+            return is_listlike["elements"].split(",")
+        return [string_value]
+
+    def default(self):
+        return []
+
+    @staticmethod
+    def register_list(option):
+        return {"action": "append"}
 
 
 def register_value(option):
@@ -180,11 +195,14 @@ for T, register_option in (
     (int, register_value),
     (float, register_value),
     (str, register_value),
-    (list, register_list),
 ):
     TypeFactory.register(
         TypeFactory(f"{T.__name__}", T, get_basic_type(T), register_option)
     )
+
+TypeFactory.register(
+    TypeFactory("list", list, ListType, ListType.register_list)
+)
 TypeFactory.register(
     TypeFactory("bool", bool, BooleanType, BooleanType.register_bool)
 )
