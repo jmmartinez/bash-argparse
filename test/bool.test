@@ -1,14 +1,15 @@
 # RUN: %{bash-argparse} --signature "bool option" | %{FileCheck} %s --check-prefix=CHECK-FALSE
 # RUN: %{bash-argparse} --signature "bool option" -- "--option" | %{FileCheck} %s --check-prefix=CHECK-TRUE
-# RUN: %{bash-argparse} --signature "bool option" -- "--no-option" | %{FileCheck} %s --check-prefix=CHECK-FALSE
 
 # RUN: %{bash-argparse} --signature "bool option=False" | %{FileCheck} %s --check-prefix=CHECK-FALSE
 # RUN: %{bash-argparse} --signature "bool option=False" -- "--option" | %{FileCheck} %s --check-prefix=CHECK-TRUE
-# RUN: %{bash-argparse} --signature "bool option=False" -- "--no-option" | %{FileCheck} %s --check-prefix=CHECK-FALSE
 
 # RUN: %{bash-argparse} --signature "bool option=True" | %{FileCheck} %s --check-prefix=CHECK-TRUE
-# RUN: %{bash-argparse} --signature "bool option=True" -- "--option" | %{FileCheck} %s --check-prefix=CHECK-TRUE
 # RUN: %{bash-argparse} --signature "bool option=True" -- "--no-option" | %{FileCheck} %s --check-prefix=CHECK-FALSE
+
+# RUN: %{with-boolean-optional-action} %{bash-argparse} --signature "bool option" -- "--no-option" | %{FileCheck} %s --check-prefix=CHECK-FALSE
+# RUN: %{with-boolean-optional-action} %{bash-argparse} --signature "bool option=False" -- "--no-option" | %{FileCheck} %s --check-prefix=CHECK-FALSE
+# RUN: %{with-boolean-optional-action} %{bash-argparse} --signature "bool option=True" -- "--option" | %{FileCheck} %s --check-prefix=CHECK-TRUE
 
 # RUN: %{bash-argparse} --signature "bool option=no" | %{FileCheck} %s --check-prefix=CHECK-FALSE
 # RUN: %{bash-argparse} --signature "bool option=off" | %{FileCheck} %s --check-prefix=CHECK-FALSE
