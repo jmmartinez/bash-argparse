@@ -274,6 +274,12 @@ class Option:
             )
 
         if self.is_positional():
+
+            if self.default() != self._type.default():
+                raise RuntimeError(
+                    f"""Positional argument "{self._name}" is always required."""
+                     """Do not assign a default values."""
+                )
             flag = [self.get_bash_name()]
         else:
             flag = ["--" + self.get_flag_name()]
