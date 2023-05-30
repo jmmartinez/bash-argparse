@@ -1,0 +1,8 @@
+# RUN: ! %{bash-argparse} --signature "int option" --help-on-empty 2>%t.empty | %{FileCheck} %s < %t.empty --check-prefix=CHECK-EMPTY
+#
+# Even with an explicit default value, help-on-empty shows an error
+# RUN: ! %{bash-argparse} --signature "int option=4" --help-on-empty 2>%t.empty_4 | %{FileCheck} %s < %t.empty_4 --check-prefix=CHECK-EMPTY
+# RUN: %{bash-argparse} --signature "int option" --help-on-empty -- --option=0 | %{FileCheck} %s --check-prefix=CHECK-0
+
+# CHECK-EMPTY: usage 
+# CHECK-0: OPTION=0
