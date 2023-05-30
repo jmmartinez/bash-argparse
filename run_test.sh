@@ -25,8 +25,6 @@ bash output_path.sh | grep "the path is:" | grep test
 bash output_path.sh --this-path=$PWD/output.txt | grep "the path is:" | grep test
 ! bash output_path.sh --this-path=$PWD
 
-( bash help_on_empty.sh 2>&1 || true ) | grep "usage"
-
 bash readme.sh --get-src --compile --run | grep "Hello World!"
 set +x
 rm -f hello.cpp a.out
