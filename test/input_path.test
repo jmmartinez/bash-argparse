@@ -1,0 +1,13 @@
+# paths behave as required options when the default is not set
+# RUN: %{bash-argparse} --signature "input_path option" -- "--option=%s" | %{FileCheck} %s --check-prefix=CHECK-S
+# RUN: %{bash-argparse} --signature "input_path @option" -- %s | %{FileCheck} %s --check-prefix=CHECK-S
+# RUN: %{bash-argparse} --signature "input_path option=%s" | %{FileCheck} %s --check-prefix=CHECK-S
+#
+# Fail if nothing is set
+# RUN: ! %{bash-argparse} --signature "input_path option" 2>%t.err_required && %{FileCheck} %s < %t.err_required --check-prefix=CHECK-REQUIRED
+# Fail if it does not exist
+# RUN: ! %{bash-argparse} --signature "input_path option" -- "--option=%t" 2>%t.err_exist && %{FileCheck} %s < %t.err_exist --check-prefix=CHECK-EXIST
+#
+# CHECK-S: OPTION="{{.*}}input_path.test"
+# CHECK-REQUIRED: error: the following arguments are required:
+# CHECK-EXIST: error: {{.*}} path does not exist
