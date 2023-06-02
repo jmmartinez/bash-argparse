@@ -94,19 +94,6 @@ def check_unsigned(value):
         raise ArgumentTypeError(f"{value} is not unsigned")
     return value
 
-
-def check_input_path(value):
-    if not value.exists():
-        raise ArgumentTypeError(f"{value} path does not exist")
-    return value.absolute()
-
-
-def check_output_path(value):
-    if value.exists():
-        raise ArgumentTypeError(f"{value} cannot override path")
-    return value.absolute()
-
-
 class BooleanType:
     def __init__(self, factory, _):
         self._factory = factory
@@ -164,6 +151,44 @@ class EnumType:
             "choices": option._type._enum,
         }
 
+class PathType:
+    def __init__(self, factory, _):
+        self._factory = factory
+
+    def parse(self, string_value):
+        return Path(string_value).absolute()
+
+    def default(self):
+        return None
+
+    @staticmethod
+    def register_path(option):
+        is_required = option.default() is None and not option.is_positional()
+        # ughhhh! this is ugly: accessing the child parse through the option
+        register = {"type": lambda v: option._type.parse(v) }
+        if is_required:
+            register["required"] = True
+        return register
+
+class OutputPathType(PathType):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def parse(self, string_value):
+        value = super().parse(string_value)
+        if value.exists():
+            raise ArgumentTypeError(f"{value} cannot override path")
+        return value
+
+class InputPathType(PathType):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def parse(self, string_value):
+        value = super().parse(string_value)
+        if not value.exists():
+            raise ArgumentTypeError(f"{value} path does not exist")
+        return value
 
 class ListType:
     def __init__(self, factory, _):
@@ -221,16 +246,16 @@ TypeFactory.register(
     TypeFactory(
         "input_path",
         Path,
-        get_basic_type_with_constraint(Path, check_input_path),
-        register_value,
+        InputPathType,
+        InputPathType.register_path,
     )
 )
 TypeFactory.register(
     TypeFactory(
         "output_path",
         Path,
-        get_basic_type_with_constraint(Path, check_output_path),
-        register_value,
+        OutputPathType,
+        OutputPathType.register_path,
     )
 )
 
@@ -274,7 +299,6 @@ class Option:
             )
 
         if self.is_positional():
-
             if self.default() != self._type.default():
                 raise RuntimeError(
                     f"""Positional argument "{self._name}" is always required."""
@@ -284,7 +308,7 @@ class Option:
         else:
             flag = ["--" + self.get_flag_name()]
             params["dest"] = dest
-            params["required"] = self.is_required()
+            params["required"] = params.get("required", False) or self.is_required()
             short_flag = next((c for c in self._name if c.isalpha()), None)
             if short_flag and short_flag not in short_flags:
                 flag.append(f"-{short_flag}")
@@ -362,7 +386,6 @@ def dump_bash_variables(prefix: str, bash_vars: Namespace) -> None:
             bash_value: str = format_bash_basic_value(value)
             print(f"{prefix}{var}={bash_value};")
     return
-
 
 if __name__ == "__main__":
     try:
