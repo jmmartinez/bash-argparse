@@ -9,6 +9,8 @@ from sys import stderr
 from pathlib import Path, PosixPath
 from re import compile as re_compile
 
+from os import getppid, access, X_OK
+
 VARARGS_DEST = "ARGS"
 
 
@@ -387,6 +389,37 @@ def dump_bash_variables(prefix: str, bash_vars: Namespace) -> None:
             print(f"{prefix}{var}={bash_value};")
     return
 
+def is_bash_exec_path(executable):
+    if executable == "bash":
+        return True
+    is_shell_path = Path(executable).name in ("bash", "sh", "zsh")
+    return  is_shell_path and access(executable, X_OK)
+
+def get_default_program():
+    default = "<script.sh>"
+
+    parent_pid = getppid()
+    with open(f"/proc/{parent_pid}/cmdline") as fd:
+        parent_argv = fd.read().split("\x00")
+
+    if not parent_argv or not is_bash_exec_path(parent_argv[0]):
+        return default
+
+    while True:
+        parent_argv = parent_argv[1:]
+        if not parent_argv:
+            return default
+
+        arg = parent_argv[0]
+        if arg.startswith("-"):
+            continue
+        arg_as_path = Path(arg)
+        maybe_script_name = arg_as_path.name
+        is_script = arg_as_path.exists() and maybe_script_name.endswith(".sh")
+        if is_script:
+            return maybe_script_name
+    return default
+
 if __name__ == "__main__":
     try:
         this_parser = ArgumentParser(
@@ -402,7 +435,7 @@ if __name__ == "__main__":
         this_parser.add_argument(
             "-p",
             "--program",
-            default="<script.sh>",
+            default=get_default_program(),
             help="The name of the program or script",
         )
         this_parser.add_argument(
