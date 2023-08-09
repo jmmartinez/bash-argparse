@@ -289,7 +289,7 @@ class Option:
         return self._decorator == "@"
 
     def is_required(self):
-        return self._decorator == "!"
+        return self._decorator == "^"
 
     def register_option(self, argument_parser, short_flags):
         params = self._type._factory.register_option(self)
@@ -303,8 +303,8 @@ class Option:
         if self.is_positional():
             if self.default() != self._type.default():
                 raise RuntimeError(
-                    f"""Positional argument "{self._name}" is always required."""
-                     """Do not assign a default values."""
+                    f"""Positional argument "{self._name}" is always required. """
+                     """Do not assign a default value."""
                 )
             flag = [self.get_bash_name()]
         else:
@@ -326,7 +326,7 @@ def build_parser_from_signature(
     parser.add_argument("-h", "--help", action=StderrHelpAction)
 
     type_re = r"(?P<type>[\w,<>-]+)"
-    name_re = r"(?P<decorator>[@!]?)(?P<name>[\w-]+)"
+    name_re = r"(?P<decorator>[@\^]?)(?P<name>[\w-]+)"
     default_value_re = r"(?P<default>\S+)"
     arg_desc_parser = re_compile(
         rf"^\s*{type_re}\s*{name_re}\s*(=\s*{default_value_re})?\s*$"
@@ -390,9 +390,10 @@ def dump_bash_variables(prefix: str, bash_vars: Namespace) -> None:
     return
 
 def is_bash_exec_path(executable):
-    if executable == "bash":
+    shells = ("bash", "sh", "zsh")
+    if executable in shells:
         return True
-    is_shell_path = Path(executable).name in ("bash", "sh", "zsh")
+    is_shell_path = Path(executable).name in shells 
     return  is_shell_path and access(executable, X_OK)
 
 def get_default_program():
@@ -420,10 +421,11 @@ def get_default_program():
             return maybe_script_name
     return default
 
-if __name__ == "__main__":
+def main():
     try:
         this_parser = ArgumentParser(
-            description="Parse command line arguments."
+            description="Parse command line arguments.",
+            prog="bash-argparse"
         )
         this_parser.add_argument(
             "-s",

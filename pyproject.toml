@@ -1,0 +1,17 @@
+[project]
+name = "bash-argparse"
+version = "0.0.1"
+authors = [
+  { name="Juan Manuel MARTINEZ CAAMAÑO", email="jmartinezcaamao@gmail.com" },
+]
+description = "Tool to parse your `bash` scripts command-line arguments."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/jmmartinez/bash-argparse"
