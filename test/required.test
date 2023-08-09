@@ -1,9 +1,9 @@
-# RUN: %{bash-argparse} --signature "int !option" -- "--option=1"  | %{FileCheck} %s --check-prefix=CHECK-1
-# RUN: %{bash-argparse} --signature "int !option=4" -- "--option=1"  | %{FileCheck} %s --check-prefix=CHECK-1
+# RUN: %{bash-argparse} --signature "int ^option" -- "--option=1"  | %{FileCheck} %s --check-prefix=CHECK-1
+# RUN: %{bash-argparse} --signature "int ^option=4" -- "--option=1"  | %{FileCheck} %s --check-prefix=CHECK-1
 #
-# RUN: ! %{bash-argparse} --signature "int !option" 2>%t.err.no_default && \
+# RUN: ! %{bash-argparse} --signature "int ^option" 2>%t.err.no_default && \
 # RUN:     %{FileCheck} %s --check-prefix=ERROR < %t.err.no_default
-# RUN: ! %{bash-argparse} --signature "int !option=4" 2>%t.err.with_default && \
+# RUN: ! %{bash-argparse} --signature "int ^option=4" 2>%t.err.with_default && \
 # RUN:     %{FileCheck} %s --check-prefix=ERROR < %t.err.with_default
 
 # CHECK-1: OPTION=1

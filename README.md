@@ -1,71 +1,69 @@
-# bash-argparse: a python script to parse bash command line arguments
+# bash-argparse: simple command line parsing for `bash` scripts
 
-I've been using this python program to parse and set the command line
-arguments at the begining of my scripts.
+`bash-argparse` is a tool to parse your `bash` scripts command-line arguments.
 
-## Basic usage
+## Features
 
-Below there is a simplified example of my workflow.
-As I try to reproduce and solve an issue, I write along a bash script with everything I do:
-set up the build environment (building a docker image, clone the right repositories,
-compile the problematic branch, ...). 
+* Specify command-line arguments from a signature
+* Short and long options
+* Positional and optional arguments
+* Type checking
+* Default values
+* Only requires a standard python (>= 3.7) installation
 
-```sh
-#!/usr/bin/env bash
-set -eou pipefail
+### `bash-argparse` vs `getopt`?
 
-ARG_VARS=$( python3 ../bash-argparse.py \
-              --program "${BASH_SOURCE[0]}" \
-              --signature "bool get_src; bool compile; bool debug; bool run; bool verbose" \
-              --description "The script compiles a program" \
-              -- "$@" )
-eval ${ARG_VARS}
+* **Ease-of-use**: If you already know any typed programming language, `bash-argparse` may feel more intuitive, since the script signature resembles a normal function definition.
+* **Type Safety**: Skip writing input validation by relying on `bash-argparse` checking the user's input against the type specification. 
+* **Automatic**: Rely on `bash-argparse` deducing the program's name and short-options.
 
-( ! ${VERBOSE} ) || set -x
+## Install
 
-if ${GET_SRC}; then
-  [ -f hello.cpp ] || \
-    wget "https://gist.githubusercontent.com/mpcv/0cb7cdfba1a345a1eeb4bcc4f0bed4af/raw/5da7cf8a8037985e8812ddd0f477045068e7fe10/hello.cpp"
-fi
+### Requirements
 
-if ${COMPILE}; then
-  flags="-O2"
-  if ${DEBUG}; then
-    flags="-g -O0"
-  fi
-  
-  g++ hello.cpp $flags -o a.out
-fi
+* Python 3.7 or above
 
-if ${RUN}; then
-  if ${DEBUG}; then
-    gdb -ex "b main" -ex "r" \
-      --args ./a.out
-  else
-    ./a.out;
-  fi
-fi
-```
+### Installation steps
 
-## Downloading `bash-argparse.py` using `wget`
-
-When used at the begining of the bash script, this snippet downloads `bash-argparse.py`
-without having to pull the git repository.
+Install it from `pip`:
 
 ```bash
-# pull bash-argparse.py into the same directory as the bash script
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-[ -f ${SCRIPT_DIR}/bash-argparse.py ] || \
-  wget "https://raw.githubusercontent.com/jmmartinez/bash-argparse/main/bash-argparse.py" -O ${SCRIPT_DIR}/bash-argparse.py
-
-# evaluate the arguments
-ARG_VARS=$( python3 $SCRIPT_DIR/bash-argparse.py \
-              --program "${BASH_SOURCE[0]}" \
-              --signature "enum<debug,release> build_type" \
-              -- "$@" )
-eval ${ARG_VARS}
+pip install bash-argparse
 ```
 
-## More Examples
+Or check the artifacts from the GitHub actions pipelines to download a nightly build. 
 
-You can find more examples in the test folder
+## Basic Usage
+
+Here is a basic example:
+
+```bash
+#!/bin/bash
+set -eou pipefail
+
+# accepts 4 options passed to the script (through `$@`)
+#   * a boolean flag --foo/-f, or --no-foo
+#   * an integer option --bar <I>/-b<I>
+#   * and a string option --fuz <S>/-F <S>
+#   * --help or -h to print the automatic help message
+eval $( python3 -m bash-argparse \
+        --signature "bool foo; int bar; string Fuz" \
+        --description "This program does many things." \
+        -- "$@" )
+
+# the variables are set by `eval`
+echo $FOO $BAR $FUZ
+```
+
+* `bash program.sh` prints `false 0 `
+* `bash program.sh --bar 4` prints `false 4 `
+* `bash program.sh -f --bar 4` prints `true 4 `
+* `bash program.sh -f --fuz 'hello'` prints `true 0 hello`
+
+## Documentation
+
+See the documentation in [the doc/ directory](./doc/index.md)
+
+## License
+
+This project is distributed under the MIT License. For more information see the [LICENSE](./LICENSE) file.
