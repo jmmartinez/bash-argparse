@@ -276,7 +276,7 @@ class Option:
     def default(self):
         return self._default
 
-    def get_bash_name(self):
+    def get_shell_name(self):
         return self._name.replace("-", "_").upper()
 
     def get_flag_name(self):
@@ -294,7 +294,7 @@ class Option:
     def register_option(self, argument_parser, short_flags):
         params = self._type._factory.register_option(self)
 
-        dest = self.get_bash_name()
+        dest = self.get_shell_name()
         if dest == VARARGS_DEST:
             raise RuntimeError(
                 f'Argument "{self._name}" clashes with varargs output.'
@@ -306,7 +306,7 @@ class Option:
                     f"""Positional argument "{self._name}" is always required. """
                      """Do not assign a default value."""
                 )
-            flag = [self.get_bash_name()]
+            flag = [self.get_shell_name()]
         else:
             flag = ["--" + self.get_flag_name()]
             params["dest"] = dest
@@ -389,6 +389,10 @@ def dump_bash_variables(prefix: str, bash_vars: Namespace) -> None:
             print(f"{prefix}{var}={bash_value};")
     return
 
+OUTPUT_FORMATER = {
+    "bash" : dump_bash_variables,
+}
+
 def is_bash_exec_path(executable):
     shells = ("bash", "sh", "zsh")
     if executable in shells:
@@ -421,6 +425,9 @@ def get_default_program():
             return maybe_script_name
     return default
 
+def get_default_shell():
+    return "bash"
+
 def main():
     try:
         this_parser = ArgumentParser(
@@ -441,6 +448,13 @@ def main():
             help="The name of the program or script",
         )
         this_parser.add_argument(
+            "-f",
+            "--format",
+            default=get_default_shell(),
+            help="The output format to be used",
+            choices=OUTPUT_FORMATER.keys()
+        )
+        this_parser.add_argument(
             "-d",
             "--description",
             default="Help",
@@ -455,20 +469,20 @@ def main():
             help="If not argument is passed, print help",
         )
         this_parser.add_argument(
-            "bash_args",
+            "shell_args",
             type=str,
             nargs="*",
-            help="Arguments to forward to the bash script parser",
+            help="Arguments to forward to the shell script parser",
         )
         args = this_parser.parse_args()
 
-        bash_parser = build_parser_from_signature(
+        shell_parser = build_parser_from_signature(
             args.program, args.signature, args.description
         )
-        if args.help_on_empty and not args.bash_args:
-            args.bash_args = ["--help"]
-        bash_args = bash_parser.parse_args(args.bash_args)
-        dump_bash_variables(args.prefix, bash_args)
+        if args.help_on_empty and not args.shell_args:
+            args.shell_args = ["--help"]
+        shell_args = shell_parser.parse_args(args.shell_args)
+        OUTPUT_FORMATER[args.format](args.prefix, shell_args)
     except (RuntimeError, ArgumentTypeError) as e:
         print(f"error: {e}", file=stderr)
         exit(-1)
