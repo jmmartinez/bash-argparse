@@ -1,12 +1,12 @@
 # paths behave as required options when the default is not set
-# RUN: %{bash-argparse} --signature "output_path option" -- "--option=%t" | %{FileCheck} %s --check-prefix=CHECK-T
-# RUN: %{bash-argparse} --signature "output_path @option" -- %t | %{FileCheck} %s --check-prefix=CHECK-T
-# RUN: %{bash-argparse} --signature "output_path option=%t" | %{FileCheck} %s --check-prefix=CHECK-T
+# RUN: %{bash-argparse-for-this-shell} --signature "output_path option" -- "--option=%t" | %{FileCheck} %s --check-prefix=CHECK-T
+# RUN: %{bash-argparse-for-this-shell} --signature "output_path @option" -- %t | %{FileCheck} %s --check-prefix=CHECK-T
+# RUN: %{bash-argparse-for-this-shell} --signature "output_path option=%t" | %{FileCheck} %s --check-prefix=CHECK-T
 #
 # Fail if nothing is set
-# RUN: ! %{bash-argparse} --signature "output_path option" 2>%t.err_required && %{FileCheck} %s < %t.err_required --check-prefix=CHECK-REQUIRED
+# RUN: %{not} %{bash-argparse-for-this-shell} --signature "output_path option" 2>%t.err_required && %{FileCheck} %s < %t.err_required --check-prefix=CHECK-REQUIRED
 # Fail if it exists
-# RUN: ! %{bash-argparse} --signature "output_path option" -- "--option=%s" 2>%t.err_notexist && %{FileCheck} %s < %t.err_notexist --check-prefix=CHECK-NOTEXIST
+# RUN: %{not} %{bash-argparse-for-this-shell} --signature "output_path option" -- "--option=%s" 2>%t.err_notexist && %{FileCheck} %s < %t.err_notexist --check-prefix=CHECK-NOTEXIST
 #
 # CHECK-T: OPTION="{{.*}}output_path.test.tmp"
 # CHECK-REQUIRED: error: the following arguments are required:

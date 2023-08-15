@@ -5,9 +5,12 @@
 # RUN: %{bash-argparse} --signature "list option" -- "--option=apple" "--option=banana" "--option=4" "--option=hello world" | %{FileCheck} %s --check-prefix=FOUR
 # RUN: %{bash-argparse} --signature "list option=apple" | %{FileCheck} %s --check-prefix=ONE
 # RUN: %{bash-argparse} --signature "list option=[apple,banana]" | %{FileCheck} %s --check-prefix=TWO
+# RUN: %{bash-argparse} --format bash --signature "list option=[apple,banana]" | %{FileCheck} %s --check-prefix=DECLARE
 
-EMPTY: declare -a OPTION=( )
-ONE: declare -a OPTION=( "apple" )
-TWO: declare -a OPTION=( "apple" "banana" )
-THREE: declare -a OPTION=( "apple" "banana" "4" )
-FOUR: declare -a OPTION=( "apple" "banana" "4" "hello world" )
+EMPTY: OPTION=( )
+ONE: OPTION=( "apple" )
+TWO: OPTION=( "apple" "banana" )
+THREE: OPTION=( "apple" "banana" "4" )
+FOUR: OPTION=( "apple" "banana" "4" "hello world" )
+
+DECLARE: declare -a OPTION=( "apple" "banana" )

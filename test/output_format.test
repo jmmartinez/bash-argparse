@@ -1,8 +1,10 @@
 # RUN: %{bash-argparse} --signature "int option" | %{FileCheck} %s --check-prefix=CHECK-BASH
 # RUN: %{bash-argparse} --signature "int option" -f "bash" | %{FileCheck} %s --check-prefix=CHECK-BASH
+# RUN: %{bash-argparse} --signature "int option" -f "batch" | %{FileCheck} %s --check-prefix=CHECK-BATCH
 
 # RUN: ! %{bash-argparse} --signature "int option" --format "gumpo" 2>%t.stderr
 # RUN: %{FileCheck} %s --check-prefix=CHECK-WRONG < %t.stderr
 
 # CHECK-BASH: OPTION=0
+# CHECK-BATCH: set OPTION=0
 # CHECK-WRONG: invalid choice: 'gumpo'

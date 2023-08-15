@@ -19,7 +19,7 @@ jobs:
       - run: pip install ruff
       - run: ruff --format=github --target-version=py37 .
 
-  test:
+  test-linux:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -32,6 +32,21 @@ jobs:
       - run: pip install -r ${{ github.workspace }}/test/requirements.txt
       - name: Running tests
         run: lit ${{ github.workspace }}/test --verbose
+
+  test-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.11"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r ${{ github.workspace }}\test\requirements.txt
+      - name: Running tests
+        shell: cmd
+        run: lit ${{ github.workspace }}\test --verbose
 
   package:
     runs-on: ubuntu-latest
@@ -51,7 +66,7 @@ jobs:
 
   test-package:
     runs-on: ubuntu-latest
-    needs: [test, package] # doesn't really need test, but if the test don't pass, this one won't either
+    needs: [test-linux, test-windows, package] # doesn't really need test, but if the test don't pass, this one won't either
     strategy:
       matrix:
         python-version: ["3.7", "3.11"]
