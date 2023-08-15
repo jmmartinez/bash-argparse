@@ -6,13 +6,14 @@ from argparse import (
     Namespace,
 )
 from sys import stderr
-from pathlib import Path, PosixPath
+from pathlib import Path, PosixPath, WindowsPath
 from re import compile as re_compile
 
 from os import getppid, access, X_OK
+from platform import system
 
 VARARGS_DEST = "ARGS"
-
+IS_WINDOWS = system() == "Windows"
 
 class StderrHelpAction(Action):
     def __init__(
@@ -359,38 +360,51 @@ def build_parser_from_signature(
     return parser
 
 
-BASH_FORMATER = {
-    int: str,
-    float: str,
-    bool: lambda b: str(b).lower(),
-    str: lambda s: f'"{s}"',
-    PosixPath: lambda s: f'"{s}"',
+BASIC_FORMATERS = {
+    ("bash", int): str,
+    ("batch", int): str,
+    ("bash", float): str,
+    ("batch", float): str,
+    ("bash", bool): lambda b: str(b).lower(),
+    ("batch", bool): lambda b: str(int(b)),
+    ("bash", str): lambda s: f'"{s}"',
+    ("batch", str): lambda s: f'"{s}"',
+    ("bash", PosixPath): lambda s: f'"{s}"',
+    ("batch", WindowsPath): lambda s: f'"{s}"',
 }
 
 
-def format_bash_basic_value(value) -> str:
+def format_basic_value(shell, value) -> str:
     try:
-        return BASH_FORMATER[type(value)](value)
+        return BASIC_FORMATERS[(shell, type(value))](value)
     except LookupError:
-        raise RuntimeError(f"Cannot serialize type to variable {type(value)}")
+        raise RuntimeError(f"Cannot serialize variable of type {type(value)}")
 
-
-def format_bash_list_value(the_list: list) -> str:
-    return "( {} )".format(" ".join(map(format_bash_basic_value, the_list)))
-
+def format_list(shell, value):
+    return "( {} )".format(" ".join(\
+        map(lambda v : format_basic_value(shell, v), value)))
 
 def dump_bash_variables(prefix: str, bash_vars: Namespace) -> None:
     for var, value in bash_vars.__dict__.items():
         if type(value) is list:
-            bash_value: str = format_bash_list_value(value)
+            bash_value = format_list("bash", value)
             print(f"declare -a {prefix}{var}={bash_value};")
         else:
-            bash_value: str = format_bash_basic_value(value)
+            bash_value: str = format_basic_value("bash", value)
             print(f"{prefix}{var}={bash_value};")
     return
 
+def dump_batch_variables(prefix: str, bash_vars: Namespace) -> None:
+    for var, value in bash_vars.__dict__.items():
+        if type(value) is list:
+            batch_value = format_list("batch", value)
+        else:
+            batch_value = format_basic_value("batch", value)
+        print(f"set {prefix}{var}={batch_value}")
+
 OUTPUT_FORMATER = {
     "bash" : dump_bash_variables,
+    "batch" : dump_batch_variables,
 }
 
 def is_bash_exec_path(executable):
@@ -400,12 +414,16 @@ def is_bash_exec_path(executable):
     is_shell_path = Path(executable).name in shells 
     return  is_shell_path and access(executable, X_OK)
 
-def get_default_program():
-    default = "<script.sh>"
+def get_default_program_name():
+    default = "<script.bat>" if IS_WINDOWS else "<script.sh>"
 
     parent_pid = getppid()
-    with open(f"/proc/{parent_pid}/cmdline") as fd:
-        parent_argv = fd.read().split("\x00")
+
+    try:
+        with open(f"/proc/{parent_pid}/cmdline") as fd:
+            parent_argv = fd.read().split("\x00")
+    except FileNotFoundError:
+        return default
 
     if not parent_argv or not is_bash_exec_path(parent_argv[0]):
         return default
@@ -426,7 +444,8 @@ def get_default_program():
     return default
 
 def get_default_shell():
-    return "bash"
+    # Ideally we would look at the parent process
+    return "batch" if IS_WINDOWS else "bash"
 
 def main():
     try:
@@ -444,7 +463,7 @@ def main():
         this_parser.add_argument(
             "-p",
             "--program",
-            default=get_default_program(),
+            default=get_default_program_name(),
             help="The name of the program or script",
         )
         this_parser.add_argument(

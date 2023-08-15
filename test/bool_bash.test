@@ -1,3 +1,4 @@
+# REQUIRES: ! windows 
 # RUN: %{bash-argparse} --signature "bool option" | %{FileCheck} %s --check-prefix=CHECK-FALSE
 # RUN: %{bash-argparse} --signature "bool option" -- "--option" | %{FileCheck} %s --check-prefix=CHECK-TRUE
 

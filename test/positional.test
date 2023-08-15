@@ -4,11 +4,15 @@
 # RUN: %{bash-argparse} --signature "str @first; str @second; str optional" -- --optional c a b | %{FileCheck} %s --check-prefix=CHECK-ABC
 # RUN: %{bash-argparse} --signature "str @first; str @second; str optional" -- -o c a b | %{FileCheck} %s --check-prefix=CHECK-ABC
 
-# RUN: ! %{bash-argparse} --signature "str @first; str @second; str optional" 2>%t0.stderr | %{FileCheck} %s --check-prefix=CHECK-FAIL <%t0.stderr
-# RUN: ! %{bash-argparse} --signature "str @first; str @second; str optional" 2>%t1.stderr  -- a | %{FileCheck} %s --check-prefix=CHECK-FAIL <%t1.stderr
-# RUN: ! %{bash-argparse} --signature "str @first; str @second; str optional" 2>%t2.stderr -- a b c | %{FileCheck} %s --check-prefix=CHECK-FAIL <%t2.stderr
+# RUN: %{not} %{bash-argparse} --signature "str @first; str @second; str optional" 2>%t0.stderr
+# RUN: %{FileCheck} %s --check-prefix=CHECK-FAIL <%t0.stderr
+# RUN: %{not} %{bash-argparse} --signature "str @first; str @second; str optional" 2>%t1.stderr  -- a
+# RUN: %{FileCheck} %s --check-prefix=CHECK-FAIL <%t1.stderr
+# RUN: %{not} %{bash-argparse} --signature "str @first; str @second; str optional" 2>%t2.stderr -- a b c
+# RUN: %{FileCheck} %s --check-prefix=CHECK-FAIL <%t2.stderr
 
-# RUN: ! %{bash-argparse} --signature "str @first=a; str optional"  2>%t3.stderr | %{FileCheck} %s --check-prefix=CHECK-NODEFAULT <%t3.stderr
+# RUN: %{not} %{bash-argparse} --signature "str @first=a; str optional"  2>%t3.stderr
+# RUN: %{FileCheck} %s --check-prefix=CHECK-NODEFAULT <%t3.stderr
 
 # CHECK-AB: FIRST="a"
 # CHECK-AB: SECOND="b"
@@ -19,4 +23,4 @@
 # CHECK-ABC: OPTIONAL="c"
 
 # CHECK-FAIL: usage:
-# CHECK-NODEFAULT: Error:
+# CHECK-NODEFAULT: error:
