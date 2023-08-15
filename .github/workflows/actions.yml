@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-      - run: pip install -r ${{ github.workspace }}/requirements.txt
+      - run: pip install -r ${{ github.workspace }}/test/requirements.txt
       - name: Running tests
         run: lit ${{ github.workspace }}/test --verbose
 
@@ -65,6 +65,6 @@ jobs:
         with:
           name: bash-argparse
       - run: pip install bash_argparse*.whl
-      - run: pip install -r ${{ github.workspace }}/requirements.txt
+      - run: pip install -r ${{ github.workspace }}/test/requirements.txt
       - name: Running tests
         run: lit ${{ github.workspace }}/test --verbose -DUSE_INSTALLED=on
